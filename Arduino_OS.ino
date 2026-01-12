@@ -8,6 +8,20 @@
 #define RX 2                           // COM port for ESP-01
 #define TX 3                           // ...
 
+/*===== display Resolution =====*/
+
+#define LCD           // LCD | OLED
+
+#ifdef LCD
+#define MAX_X 16      // LCD resolution
+#define MAX_Y 2
+#endif
+
+#ifdef OLED
+#define MAX_X 128     // OLED resolution
+#define MAX_Y 64
+#endif
+
 /*====== system defined stuf ======*/
 // Rotatory encoder input config
 #define CLK 8
@@ -38,6 +52,7 @@ const char* const page[] = {NULL,
   "Get temps[NET]", "Write RAW",
   "sus"
 };  // 15 chars MAX | add label for your application
+// byte disk_buffer[512];
 
 const byte backslash[] = {
   B00000,

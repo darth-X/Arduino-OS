@@ -30,7 +30,7 @@ void writeDisk(unsigned short lba, byte data) {
 }
 
 //reads from disk
-byte readDisk(unsigned short lba) {
+byte readDisk(unsigned int lba) {
   byte data;
   byte block = 0b000;
 
@@ -73,39 +73,60 @@ unsigned short fileCheck(void) {
   }
 }
 
+bool diskPresent(){
+  Wire.beginTransmission(0b1010000);
+  
+  if(Wire.endTransmission() == 0){
+    return true;
+  }
+
+  return false;
+}
+
 void programEEPROM(void) {
   lcd.clear();
   lcd.home();
+
+  if(!diskPresent()){
+    lcd.print(F("Disk is not"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("present!"));
+    delay(1000);
+    updatePAGE();
+    return;
+  }
+
   delay(500);
 
-  //function variables
-  byte overwrite = 0;
-  byte head;
+  int overwrite = 0;
+  const char* const YN_str[] = {"NO", "YES"};
+  int section_number = 1;
 
-  lcd.print(F("OVERWRITE code?"));
-  lcd.setCursor(0, 1);
-  lcd.print(F("NO<   YES"));
+  lcd.print(F("SELECT SECTOR:"));
 
-
+  // getting "which sector"
   lastStateCLK = digitalRead(CLK);
   while (true) {
-    currentStateCLK = digitalRead(CLK);
-    if(currentStateCLK != lastStateCLK){
-      if(digitalRead(DT) != currentStateCLK && overwrite == 0){
-        overwrite++;
-        lcd.setCursor(0, 1);
-        lcd.print(F("NO    YES<"));
-      } else if(digitalRead(DT) == currentStateCLK && overwrite == 1) {
-        overwrite--;
-        lcd.setCursor(0, 1);
-        lcd.print(F("NO<   YES  "));
-      }
-      lastStateCLK = currentStateCLK;
-    }
+    input_counter(&section_number, 1, 4);
+    lcd.setCursor(0, 1);
+    lcd.print(section_number);
 
-    if (digitalRead(select) == 0) {
-      break;
-    }
+    if (!digitalRead(select)) break;
+  }
+
+  lcd.clear();
+  delay(250);
+  lcd.home();
+  lcd.print(F("OVERWRITE?:"));
+
+  // getting "overwrite?"
+  lastStateCLK = digitalRead(CLK);
+  while(true){
+    input_counter(&overwrite, 0, 1);
+    lcd.setCursor(0, 1);
+    lcd.print(YN_str[overwrite]);
+
+    if(!digitalRead(select)) break;
   }
 
   
@@ -117,8 +138,8 @@ void programEEPROM(void) {
     updatePAGE();
     return;
   } else {
-    head = fileCheck();
-    if (head > 0) {
+    int head = fileCheck();
+    if(head > 0){
       prog(head);
       updatePAGE();
       return;
@@ -134,6 +155,18 @@ void programEEPROM(void) {
 }
 
 void readEEPROM(void) {
+  lcd.home();
+  lcd.clear();
+
+  if(!diskPresent()){
+    lcd.print(F("Disk is not"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("present!"));
+    delay(1000);
+    updatePAGE();
+    return;
+  }
+
   if(devmode){
     unsigned short i = 0;
     while(i <= lbaMAX){
@@ -144,8 +177,6 @@ void readEEPROM(void) {
     }
   }
   byte data = readDisk(getLBA());
-  lcd.home();
-  lcd.clear();
   lcd.print(F("DATA: "));
   lcd.setCursor(0, 1);
   lcd.print(data);
@@ -154,6 +185,18 @@ void readEEPROM(void) {
 }
 
 void writeRAW_EEPROM(void){
+  lcd.clear();
+  lcd.home();
+
+  if(!diskPresent()){
+    lcd.print(F("Disk is not"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("present!"));
+    delay(1000);
+    updatePAGE();
+    return;
+  }
+  
   writeDisk(getLBA(), getRAW());
   lcd.clear();
   lcd.home();

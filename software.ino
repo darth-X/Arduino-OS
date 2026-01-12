@@ -99,6 +99,98 @@ void inter() {
   //     }
   //   }
   // }
+
+  if(!diskPresent()){
+    lcd.print(F("Disk is not"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("present!"));
+    delay(1000);
+    updatePAGE();
+    return;
+  }
+
+  // data
+  size_t data = NULL;
+  size_t addr = 0;
+
+  // v-reg
+  size_t reg[] = {0, 0, 0, 0};
+  bool cf = false;
+
+  while(true){
+    data = readDisk(addr);
+
+    switch(data) {
+      case 1:  // mova
+        addr++;
+        reg[0] = readDisk(addr);
+        break;
+      
+      case 2:  // movb
+        addr++;
+        reg[1] = readDisk(addr);
+        break;
+      
+      case 3:  // movc
+        addr++;
+        reg[2] = (size_t)readDisk(addr);
+        break;
+      
+      case 4:  // movd
+        addr++;
+        reg[3] = (char)readDisk(addr);
+        break;
+
+      case 5:  // int
+        // do later
+        break;
+      
+      case 6:  // jmp
+        addr = readDisk(addr+1);
+        break;
+      
+      case 7:  // je
+        if(readDisk(addr+1) != readDisk(addr+2)){
+          addr += 3;
+          break;
+        }
+
+        addr = readDisk(addr+3);
+        break;
+
+      case 8:  // jne
+        if(readDisk(addr+1) == readDisk(addr+2)){
+          addr += 3;
+          break;
+        }
+
+        addr = readDisk(addr+3);
+        break;
+      
+      case 9:  // add
+        reg[(readDisk(addr+1))-1] += reg[readDisk(addr+2)];
+        break;
+      
+      case 10:  // sub
+        reg[(readDisk(addr+1))-1] -= reg[readDisk(addr+2)];
+        break;
+      
+      case 11:  // stc
+        cf = true;
+        break;
+      
+      case 12:  // clc
+        cf = false;
+      
+      case 13:  // jc
+        addr++;
+        if(cf){
+          addr = readDisk(addr);
+        }
+    }
+
+    addr++;
+  }
 }
 
 // DONE
@@ -257,16 +349,16 @@ void prog(byte start) {                                 //=================main 
       addr++;
       writeDisk(addr, (byte) lba);
       
-    } else if(command == 13){
+    } else if(command == 13){   // int
       writeDisk(addr, 14);
       addr++;
-    } else if(command == 14){
+    } else if(command == 14){   // hlt
       writeDisk(addr, 255);
       addr++;
-    } else if(command == 15){
+    } else if(command == 15){   // fend | 254
       writeDisk(addr, endBit);
       return;
-    } else{
+    } else{                     // err
       lcd.clear();
       lcd.home();
       lcd.print(F("FATAL ERROR:"));
@@ -274,7 +366,9 @@ void prog(byte start) {                                 //=================main 
       lcd.print(commands_inter[command]);
 
       cli();        // disable interupts
-      while(true);  // nothing; loop forever
+      while(true);  // nothing | loop forever
     }
+
+    // if(!conti) break;
   }
 }

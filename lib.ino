@@ -4,6 +4,7 @@
 
 #define debounce 250
 
+/*===== User input stuff =====*/
 byte getDat(void) {
   delay(debounce);
   lcd.clear();
@@ -123,7 +124,7 @@ unsigned short getLBA(void){
   }
 }
 
-// here
+/*===== Other helpers =====*/
 void input_counter(int* previous_count, int min, int max){
   currentStateCLK = digitalRead(CLK);
 
@@ -140,52 +141,29 @@ void input_counter(int* previous_count, int min, int max){
   }
 }
 
-void updatePAGE(void){
-  char* incoming_opt_str;
+/*===== Page updater =====*/
+int last_cursor_pos = 0;
 
-  lcd.home();
-  
-  if((opt % 2) == 0){   // down
-    incoming_opt_str = page[opt-1];
-    lcd.print(incoming_opt_str);
-    for(byte i = 0; i < (14 - sizeof(incoming_opt_str)); i++){
-      lcd.print(F(" "));
-    }
+void updatePAGE(){
+  unsigned int groupNo = 1;
 
-    lcd.setCursor(0, 1);
-    incoming_opt_str = page[opt];
-    lcd.print(incoming_opt_str);
-    for(byte i = 0; i < (14 - sizeof(incoming_opt_str)); i++){
-      lcd.print(F(" "));
-    }
+  // find grp
+  while((MAX_Y * groupNo) < opt) groupNo++;
 
-    lcd.setCursor(15, 1);
-    lcd.print(F("<"));
-    lcd.setCursor(15, 0);
-    lcd.print(F(" "));
-  } else {    // up
-    incoming_opt_str = page[opt];
-    lcd.print(incoming_opt_str);
-    for(byte i = 0; i < (14 - sizeof(incoming_opt_str)); i++){
-      lcd.print(F(" "));
-    }
-
-    lcd.setCursor(0, 1);
-    if(opt != optMAX){
-      incoming_opt_str = page[opt+1];
-      lcd.print(incoming_opt_str);
-      for(byte i = 0; i < (14 - sizeof(incoming_opt_str)); i++){
-        lcd.print(F(" "));
-      }
-    } else {
-      for(byte i = 0; i < 15; i++){
-        lcd.print(F(" "));
-      }
-    }
-
-    lcd.setCursor(15, 1);
-    lcd.print(F(" "));
-    lcd.setCursor(15, 0);
-    lcd.print(F("<"));
+  // print accordingly
+  for(byte i = 0; i <= (MAX_Y - 1); i++){
+    lcd.setCursor(0, i);
+    lcd.print(page[MAX_Y * (groupNo - 1) + i + 1]);
+    for(byte ii = 1; ii < (MAX_X - sizeof(page[MAX_Y * (groupNo - 1) + i])); ii++) lcd.print(F(" "));
   }
+
+  // delete last cursor postition
+  lcd.setCursor((MAX_X - 1), last_cursor_pos);
+  lcd.print(F(" "));
+  last_cursor_pos = (MAX_Y - 1) - ((groupNo * MAX_Y) - opt);
+  
+  // update cursor location
+  lcd.setCursor((MAX_X - 1), (MAX_Y - 1) - ((groupNo * MAX_Y) - opt));
+  lcd.print(F("<"));
+
 }
